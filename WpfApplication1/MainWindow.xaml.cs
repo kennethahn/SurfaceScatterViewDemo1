@@ -24,7 +24,10 @@ namespace WpfApplication1
         public MainWindow()
         {
             InitializeComponent();
+            cleanedUpTimes = new Dictionary<ScatterViewItem, int>();
         }
+
+        private Dictionary<ScatterViewItem, int> cleanedUpTimes;
 
         private void ButtonAddItem_Click(object sender, RoutedEventArgs e)
         {
@@ -37,6 +40,7 @@ namespace WpfApplication1
             PlayGround.Items.Add(item);
             item.BringIntoBounds();
             item.BringIntoView();
+            LabelStatus.Content = "";
         }
 
         void item_ContainerManipulationStarted(object sender, ContainerManipulationStartedEventArgs e)
@@ -55,11 +59,31 @@ namespace WpfApplication1
             {
                 if (ItemIsOutsideView(item))
                 {
-                    LabelStatus.Content = "Why do I ALWAYS have to clean up your toys?!";
-                    item.Center = ViewCenter;
+                    item.Center = ViewCenter;  // repace item in center of playground
+                    if (!cleanedUpTimes.ContainsKey(item))
+                    {
+                        cleanedUpTimes.Add(item, 1);
+                    }
+                    else
+                    {
+                        int count = cleanedUpTimes[item];
+                        cleanedUpTimes[item] = count + 1;
+                        if (count == messages.Count)
+                        {
+                            PlayGround.Items.Remove(item);  // remove item from playground
+                        }
+                        LabelStatus.Content = messages[count-1];
+                    }
                 }
             }
         }
+
+        private List<String> messages = new List<string>(){
+            "I cleaned up one of your toys again. But it's no problem.",
+            "Why do I ALWAYS have to clean up your toys?!",
+            "Ok, that's it. Your toy is in the trash now!"
+        };
+
 
         /// <summary>
         /// Check if the item is touching the border of the playground
