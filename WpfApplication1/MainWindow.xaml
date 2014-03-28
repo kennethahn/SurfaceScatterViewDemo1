@@ -1,0 +1,11 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:Custom="http://schemas.microsoft.com/surface/2008" x:Class="WpfApplication1.MainWindow"
+        Title="MainWindow" Height="350" Width="525">
+    <Grid>
+        <Custom:ScatterView x:Name="PlayGround" Margin="10,75,0,0" BorderThickness="5" BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
+        <Custom:SurfaceButton x:Name="ButtonAddItem" Content="Add item" HorizontalAlignment="Left" Margin="27,17,0,0" VerticalAlignment="Top" Background="#4DF10707" Click="ButtonAddItem_Click"/>
+        <Label x:Name="LabelStatus" Content="" HorizontalAlignment="Left" Margin="141,17,0,0" VerticalAlignment="Top" Width="355" Height="38"/>
+    </Grid>
+</Window>
