@@ -1,6 +1,7 @@
 ﻿using Microsoft.Surface.Presentation.Controls;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
@@ -25,6 +27,7 @@ namespace WpfApplication1
         {
             InitializeComponent();
             cleanedUpTimes = new Dictionary<ScatterViewItem, int>();
+            PlayGround.Cursor = Cursors.Hand;
         }
 
         private Dictionary<ScatterViewItem, int> cleanedUpTimes;
@@ -34,13 +37,23 @@ namespace WpfApplication1
             var item = new ScatterViewItem();
             item.ContainerManipulationCompleted += item_ContainerManipulationCompleted;
             item.ContainerManipulationStarted += item_ContainerManipulationStarted;
+            item.ContainerManipulationDelta += item_ContainerManipulationDelta;
             item.BorderBrush = PlayGround.BorderBrush;
+
+            item.AngularDeceleration = 0.00001;
+            item.Deceleration = 0.01;
             item.BorderThickness = new Thickness(2d);
             item.Content = "My toy";
             PlayGround.Items.Add(item);
-            item.BringIntoBounds();
-            item.BringIntoView();
+            ResetItem(item);
             LabelStatus.Content = "";
+            item.Content = new Ellipse() { Fill = Brushes.Aqua };
+        }
+
+        void item_ContainerManipulationDelta(object sender, ContainerManipulationDeltaEventArgs e)
+        {
+            Trace.WriteLine("Delta: " + e.HorizontalChange + ", " + e.VerticalChange);
+            Trace.WriteLine("Orientation: " + e.RotationalChange);
         }
 
         void item_ContainerManipulationStarted(object sender, ContainerManipulationStartedEventArgs e)
@@ -52,37 +65,56 @@ namespace WpfApplication1
         void item_ContainerManipulationCompleted(object sender, ContainerManipulationCompletedEventArgs e)
         {
             System.Diagnostics.Trace.WriteLine("hello container");
-            Console.Out.WriteLine("Manipulation is starting:");
-            Console.Out.WriteLine(e.Source);
             var item = sender as ScatterViewItem;
-            if (item != null)
+            if (ItemIsOutsideView(item))
             {
-                if (ItemIsOutsideView(item))
-                {
-                    item.Center = ViewCenter;  // repace item in center of playground
-                    if (!cleanedUpTimes.ContainsKey(item))
-                    {
-                        cleanedUpTimes.Add(item, 1);
-                    }
-                    else
-                    {
-                        int count = cleanedUpTimes[item];
-                        cleanedUpTimes[item] = count + 1;
-                        if (count == messages.Count)
-                        {
-                            PlayGround.Items.Remove(item);  // remove item from playground
-                        }
-                        LabelStatus.Content = messages[count-1];
-                    }
-                }
+                PlayGround.Items.Remove(item);
+                LabelStatus.Content = " You discarded an item";
+            }
+            else
+            {
+                ResetItem(item);
             }
         }
 
-        private List<String> messages = new List<string>(){
-            "I cleaned up one of your toys again. But it's no problem.",
-            "Why do I ALWAYS have to clean up your toys?!",
-            "Ok, that's it. Your toy is in the trash now!"
-        };
+        private void ResetItem(ScatterViewItem item)
+        {
+
+            if (item.ActualCenter.X.ToString().Equals("NaN"))
+            {
+                item.Center = ViewCenter;
+                item.Orientation = 0;
+            }
+            else // slowly reset item 
+            {
+                Duration duration = new Duration(TimeSpan.FromSeconds(1));
+                Storyboard stb = new Storyboard();
+
+                PointAnimation moveCenter = new PointAnimation();  // animate the movement
+                Point endPoint = ViewCenter;
+                moveCenter.From = item.ActualCenter;
+                moveCenter.To = endPoint;
+                moveCenter.Duration = duration;
+                moveCenter.FillBehavior = FillBehavior.Stop;
+                stb.Children.Add(moveCenter);
+                Storyboard.SetTarget(moveCenter, item);
+                Storyboard.SetTargetProperty(moveCenter, new PropertyPath(ScatterViewItem.CenterProperty));
+
+                var rotationAnimation = new DoubleAnimation(); // animate the rotation
+                rotationAnimation.From = item.ActualOrientation;
+                rotationAnimation.To = item.ActualOrientation > 0 ? 0 : 360;
+                rotationAnimation.Duration = duration;
+                rotationAnimation.FillBehavior = FillBehavior.Stop;
+                stb.Children.Add(rotationAnimation);
+                Storyboard.SetTarget(rotationAnimation, item);
+                Storyboard.SetTargetProperty(rotationAnimation, new PropertyPath(ScatterViewItem.OrientationProperty));
+
+                stb.Begin(this);  // run the storyboard
+                
+                item.Center = endPoint;  // do the actual movement of the item
+                item.Orientation = 0;
+            }
+        }
 
 
         /// <summary>
